@@ -1,0 +1,186 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CRM + Monday.com Lead API",
+    "description": "API for creating CRM leads and syncing them to Monday.com with an auth code for clients.",
+    "version": "1.5.1"
+  },
+  "servers": [
+    {
+      "url": "https://api.crm.example.com"
+    }
+  ],
+  "paths": {
+    "/ping": {
+      "get": {
+        "operationId": "ping",
+        "summary": "Health check",
+        "description": "Simple test to confirm API is online.",
+        "responses": {
+          "200": {
+            "description": "API is reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads": {
+      "post": {
+        "operationId": "createLead",
+        "summary": "Create a new lead",
+        "description": "Creates a lead in CRM and Monday.com. Returns an auth code.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "referralSource": { "type": "string" },
+                  "sessionSummary": { "type": "string" }
+                },
+                "required": ["name", "email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lead created and mapped to Monday.com",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "leadId": { "type": "string" },
+                    "mondayItemId": { "type": "string" },
+                    "authCode": { "type": "string" },
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid data" }
+        }
+      }
+    },
+    "/leads/{authCode}": {
+      "get": {
+        "operationId": "getLeadReport",
+        "summary": "Retrieve a report",
+        "description": "Gets a client report using the auth code.",
+        "parameters": [
+          {
+            "name": "authCode",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "leadId": { "type": "string" },
+                    "name": { "type": "string" },
+                    "email": { "type": "string" },
+                    "phone": { "type": "string" },
+                    "referralSource": { "type": "string" },
+                    "sessionSummary": { "type": "string" },
+                    "competitorQuotes": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "notes": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Report not found" }
+        }
+      },
+      "patch": {
+        "operationId": "updateLeadReport",
+        "summary": "Update a client report",
+        "description": "Lets clients add quotes, notes, or upload a file. Uploads go to Monday.com. If no file is uploaded, marks the record for follow-up.",
+        "parameters": [
+          {
+            "name": "authCode",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "competitorQuotes": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "mortgageStatement": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "notes": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Report updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "fileAttached": { "type": "boolean" },
+                    "emailFollowUpNeeded": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Report not found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  }
+}
